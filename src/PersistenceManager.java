@@ -40,19 +40,19 @@ public class PersistenceManager {
 	 * Begin a new transaction. ID is valid until commit.
 	 * @return the ID of the transaction
 	 */
-	public int beginTransaction(){
+	public synchronized int beginTransaction(){
 		taCounter++;
 		activeTas.add(taCounter);
 		return taCounter;
 	}
-	
+
 	/**
 	 * Commit a Transaction.
 	 * @param taId the ID of the transaction to be committed
 	 */
-	public void commit(int taId){
+	public synchronized void commit(int taId){
 		if (activeTas.contains(taId)) {
-			activeTas.remove(taId);
+			activeTas.remove(Integer.valueOf(taId));
 			committedTas.add(taId);
 		}
 		else {
@@ -66,7 +66,7 @@ public class PersistenceManager {
 	 * @param pageId
 	 * @param data
 	 */
-	public void write(int taId, int pageId, String data) {
+	public synchronized void write(int taId, int pageId, String data) {
 		buffer.put(pageId, new UserData(taId, pageId, logCounter, data));
 		log(taId, pageId, data);
 		
