@@ -1,22 +1,16 @@
 
-public class UserData {
-	private int taId, pageId, lsn;
+public class Page {
+	private int pageId, lsn;
 	private String data;
 	
-	public UserData(int taId, int pageId, int lsn, String data) {
+	public Page(int taId, int pageId, int lsn, String data) {
 		super();
-		this.taId = taId;
 		this.pageId = pageId;
 		this.lsn = lsn;
 		this.data = data;
 	}
 
-	/**
-	 * @return the Transaction ID
-	 */
-	public int getTaId() {
-		return taId;
-	}
+
 	
 	/**
 	 * @return the Page ID

@@ -2,19 +2,19 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Map;
+import java.util.List;
+import java.util.Set;
 
 public class PersistenceManager {
 
 	static final private PersistenceManager instance;
 	
-	private Hashtable<Integer, UserData> buffer = new Hashtable<Integer, UserData>();
+	private Hashtable<Integer, Page> buffer = new Hashtable<Integer, Page>();
 	private int taCounter  = 0, //used for Transaction IDs
 			    logCounter = 0; //used for log IDs
-	private LinkedList<Integer> activeTas    = new LinkedList<Integer>(),
-	                            committedTas = new LinkedList<Integer>();
+	private  Hashtable<Integer, LinkedList<Integer>> activeTas    = new Hashtable<Integer, LinkedList<Integer>>(),
+	                                                 committedTas = new Hashtable<Integer, LinkedList<Integer>>();
 	
 	static {
 		try {
@@ -30,8 +30,7 @@ public class PersistenceManager {
 	
 	/**
 	 * @return the singleton instance of PersistenceManager
-	 */
-	
+	 */	
 	static public PersistenceManager getInstance() {
 		return instance;
 	}
@@ -42,7 +41,9 @@ public class PersistenceManager {
 	 */
 	public synchronized int beginTransaction(){
 		taCounter++;
-		activeTas.add(taCounter);
+		activeTas.put(taCounter, new LinkedList<Integer>());
+		String logEntry = logCounter + "," + taCounter + ",BOT";
+		log(logEntry);
 		return taCounter;
 	}
 
@@ -51,9 +52,11 @@ public class PersistenceManager {
 	 * @param taId the ID of the transaction to be committed
 	 */
 	public synchronized void commit(int taId){
-		if (activeTas.contains(taId)) {
-			activeTas.remove(Integer.valueOf(taId));
-			committedTas.add(taId);
+		if (activeTas.containsKey(taId)) {
+			LinkedList<Integer> pageIds = activeTas.remove(taId);
+			committedTas.put(taId, pageIds);
+            String logEntry = logCounter + "," + taId + ",Commit";
+			log(logEntry);
 		}
 		else {
 			System.out.println("invalid Transaction ID " + taId);
@@ -67,24 +70,41 @@ public class PersistenceManager {
 	 * @param data
 	 */
 	public synchronized void write(int taId, int pageId, String data) {
-		buffer.put(pageId, new UserData(taId, pageId, logCounter, data));
-		log(taId, pageId, data);
-		
-		if (buffer.size() > 5) {
-			Iterator<Map.Entry<Integer, UserData>> it = buffer.entrySet().iterator();
-			while (it.hasNext()) {
-				Map.Entry<Integer, UserData> entry = it.next();
-				UserData d = entry.getValue();
-				if (committedTas.contains(d.getTaId())){ //has entry been committed?
-					writeToPersistentStorage(d);
-					it.remove();
-				}
+		//check if taId is valid and add pageId to the list of pages corresponding to taId
+		if (activeTas.containsKey(taId)) {
+			List<Integer> pageIds = activeTas.get(taId);
+			if (!pageIds.contains(pageId)) {
+				pageIds.add(pageId);
 			}
+		}
+		//add page to buffer
+		buffer.put(pageId, new Page(taId, pageId, logCounter, data));
+		//log
+		String logEntry = logCounter + "," + taId + "," + pageId + "," + "Modification: " + data;
+		log(logEntry);
+		//check if buffer is full and write to persistent storage if necessary
+		if (buffer.size() > 5) {
+			Object[] pIds = buffer.keySet().toArray();
+            for (Object pId : pIds) {
+                if (correspondsToCommittedTa((int) pId)) {            	
+            		writeToPersistentStorage(buffer.remove(pId));
+                }
+
+            }
 		}
 	}
 
-	private void writeToPersistentStorage(UserData d) {
-		String fileName = "data" + File.separator + String.valueOf(d.getPageId());
+	private boolean correspondsToCommittedTa(int pId) {
+		for (int taId : committedTas.keySet()) {
+			if (committedTas.get(taId).contains(pId)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void writeToPersistentStorage(Page d) {
+		String fileName = "data" + File.separator + d.getPageId() + ".txt";
 		try {
 			FileWriter writer = new FileWriter(fileName);
 			writer.write(d.toString());
@@ -96,15 +116,10 @@ public class PersistenceManager {
 		
 	}
 
-	private void log(int taId, int pageId, String data) {
-		String fileName = "logs" + File.separator + String.valueOf(logCounter);
-		String logData = String.valueOf(logCounter) + "," + String.valueOf(taId) + "," +
-				String.valueOf(pageId) + "," + data;
+	private void log(String data) {
 		logCounter++;
-		try {
-			FileWriter writer = new FileWriter(fileName);
-			writer.write(logData);
-			writer.close();
+		try (FileWriter writer = new FileWriter("log.txt", true)){
+			writer.write(data + System.lineSeparator());
 		} catch (IOException e) {
 			System.out.println("Logging failed due to a write error.");
 			System.out.println(e.toString());
