@@ -32,7 +32,8 @@ public class Client extends Thread{
 		idle();
 		for (int i = 0; i < numberOfWrites; i++) {
 			int pageId = ThreadLocalRandom.current().nextInt(10) + (this.clientId - 1) * 10; //each client works on a different set pages
-			String data = "My favorite special number in the whole world has to be " + ThreadLocalRandom.current().nextInt() + "."; 
+			String data = "I am client number " + this.clientId + ". My favorite special number in the whole world has to be " 
+			              + ThreadLocalRandom.current().nextInt() + "."; 
 			perMan.write(taId, pageId, data);
 			idle();
 		}

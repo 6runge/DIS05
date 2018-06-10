@@ -13,8 +13,8 @@ public class PersistenceManager {
 	private Hashtable<Integer, UserData> buffer = new Hashtable<Integer, UserData>();
 	private int taCounter  = 0, //used for Transaction IDs
 			    logCounter = 0; //used for log IDs
-	private LinkedList<Integer> activeTas;
-	private LinkedList<Integer> committedTas;
+	private LinkedList<Integer> activeTas    = new LinkedList<Integer>(),
+	                            committedTas = new LinkedList<Integer>();
 	
 	static {
 		try {
@@ -41,9 +41,9 @@ public class PersistenceManager {
 	 * @return the ID of the transaction
 	 */
 	public int beginTransaction(){
-		activeTas.add(taCounter);
 		taCounter++;
-		return taCounter - 1;
+		activeTas.add(taCounter);
+		return taCounter;
 	}
 	
 	/**
@@ -56,7 +56,7 @@ public class PersistenceManager {
 			committedTas.add(taId);
 		}
 		else {
-			System.out.println("invalid Transaction ID");
+			System.out.println("invalid Transaction ID " + taId);
 		}
 	}
 	
