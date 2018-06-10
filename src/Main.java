@@ -8,9 +8,9 @@ public class Main {
 		}
 		
 		try {
-			Thread.sleep(1000);
+			Thread.sleep(10000);
 			} catch (InterruptedException e) {} //wait for a while
-		
+
 		for (Client c : clients) { //everybody stops what they're doing
 			c.interrupt();
 		}

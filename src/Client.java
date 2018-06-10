@@ -45,7 +45,7 @@ public class Client extends Thread{
 		try{
 			Thread.sleep(ThreadLocalRandom.current().nextLong(3000));
 		}catch(InterruptedException e){
-			return;
+			this.interrupt();
 		}		
 	}
 
