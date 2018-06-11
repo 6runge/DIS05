@@ -33,7 +33,7 @@ public class Client extends Thread{
 		int numberOfWrites = ThreadLocalRandom.current().nextInt(20); 
 		
 		int taId =perMan.beginTransaction();
-		Thread.sleep(ThreadLocalRandom.current().nextLong(3000));
+		Thread.sleep(ThreadLocalRandom.current().nextLong(2000));
 		for (int i = 0; i < numberOfWrites; i++) {
 			int pageId = ThreadLocalRandom.current().nextInt(10) + (this.clientId - 1) * 10; //each client works on a different set pages
 			String data = "I am client number " + this.clientId + ". My favorite special number in the whole world has to be " 

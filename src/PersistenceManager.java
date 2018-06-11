@@ -77,6 +77,10 @@ public class PersistenceManager {
 				pageIds.add(pageId);
 			}
 		}
+		else {
+			System.out.println("Trying to wirte with invalid transaction id");
+			return;
+		}
 		//add page to buffer
 		buffer.put(pageId, new Page(taId, pageId, logCounter, data));
 		//log
@@ -104,7 +108,7 @@ public class PersistenceManager {
 	}
 
 	private void writeToPersistentStorage(Page d) {
-		String fileName = "data" + File.separator + d.getPageId() + ".txt";
+		String fileName = "data" + File.separator + d.getPageId();
 		try {
 			FileWriter writer = new FileWriter(fileName);
 			writer.write(d.toString());
