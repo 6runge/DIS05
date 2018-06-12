@@ -30,7 +30,7 @@ public class Client extends Thread{
 
 	//perform a transaction with up to 20 write operations
 	private void doTransaction() throws InterruptedException{
-		int numberOfWrites = ThreadLocalRandom.current().nextInt(20); 
+		int numberOfWrites = ThreadLocalRandom.current().nextInt(10); 
 		
 		int taId =perMan.beginTransaction();
 		Thread.sleep(ThreadLocalRandom.current().nextLong(2000));

@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class RecoveryTool {
 	}
 
 	private void redo() {
-		//find relevant pages and for each for each relevant page the LSN corresponding to its most recent modification
+		//find relevant pages and for each relevant page the LSN corresponding to its most recent modification
 		Hashtable<Integer, Integer> relevantPages = new Hashtable<Integer, Integer>();
 		for (String[] logEntry : log) {
 			int taId = Integer.parseInt(logEntry[1]);
@@ -55,45 +56,20 @@ public class RecoveryTool {
 				}
 			}
 		}
-		//compare LSNs of relevant pages to LSNs of latest log entry corresponding to the respective page
-		File[] allPages = new File("data").listFiles();
-		for (File page : allPages) {
-			int p = Integer.parseInt(page.getName());
-			if (relevantPages.containsKey(p)){ //Is the page relevant?
-				try (BufferedReader reader = new BufferedReader(new FileReader(page.getAbsolutePath()))){
-					String[] pContent = reader.readLine().split(",");
-					int pLsn = Integer.parseInt(pContent[1]),
-						lLsn = relevantPages.get(p);
-					if (pLsn < lLsn) { //Is the record stale?
-						//redo modification from log
-						String filename = "data" + File.separator + p;
-						String mod = "";
-						for (String[] logEntry : log) {
-							if (logEntry[0].equals(pContent[0])) { //find log entry corresponding to latest modification to page
-								mod = logEntry[3];
-								break;
-							}
-						}
-						String newRecord = p + "," + lLsn + "," + mod;
-	                    writeRecord(filename, newRecord);
-						relevantPages.remove(p);
-					}
-				} catch (Exception e) {
-					System.out.println("redo failed due to a read error.");
-					e.printStackTrace();
-				}
-			}
-		}
-		//now do the pages that had'nt been persisted
+		//compare LSNs of logs to LSNs of persisted pages
 		for (int pId : relevantPages.keySet()) {
-			String filename = "data" + File.separator + pId;
-			String mod  = ""; 
 			int lLsn = relevantPages.get(pId);
-			for (String[] logEntry : log) {
-				if (Integer.parseInt(logEntry[0]) == relevantPages.get(pId)) { //find log entry corresponding to latest modification to page
-					mod = logEntry[3];
-					System.out.println(mod);
-					//break;
+			int recLsn = getRecLsn(pId);
+			//System.out.println("lLsn = " + lLsn + "; recLsn = " + recLsn);
+			if (lLsn > recLsn) { //redo necessary?
+				String filename = "data" + File.separator + pId;
+				String mod  = ""; 
+
+				for (String[] logEntry : log) {
+					if (Integer.parseInt(logEntry[0]) == relevantPages.get(pId)) { //find log entry corresponding to latest modification to page
+						mod = logEntry[3];
+						break;
+					}
 				}
 				String newRecord = pId + "," + lLsn + "," + mod;
 				writeRecord(filename, newRecord);						
@@ -110,6 +86,22 @@ public class RecoveryTool {
 			System.out.println("redo failed due to a write error.");
 			System.out.println("couldn't write " + record + " to " + filename);
 			System.out.println(e.toString());
-		} 	
+		} 
+		System.out.println("redo: " + record);
+	}
+	
+	private int getRecLsn(int pageId) {
+		String filename = "data" + File.separator + pageId;
+		int reVa = -1;
+		try (BufferedReader reader = new BufferedReader(new FileReader(filename))){
+			String[] entry = reader.readLine().split(",");
+			reVa = Integer.parseInt(entry[1]);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return reVa;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return reVa;
 	}
 }
